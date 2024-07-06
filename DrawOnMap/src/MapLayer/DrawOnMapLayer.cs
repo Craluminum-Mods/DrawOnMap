@@ -90,7 +90,7 @@ public class DrawOnMapLayer : MapLayer
 
         if (leftDraw)
         {
-            Draw(args, mapElem);
+            Draw(args.X, args.Y, mapElem);
         }
 
         foreach (DrawOnMapComponent loadedMapDatum in loadedMapData.Values)
@@ -112,9 +112,9 @@ public class DrawOnMapLayer : MapLayer
         }
     }
 
-    private void Draw(MouseEvent args, GuiElementMap mapElem)
+    private void Draw(int x, int y, GuiElementMap mapElem)
     {
-        Vec2f viewPos = new Vec2f(args.X, args.Y);
+        Vec2f viewPos = new Vec2f(x, y);
         viewPos.X = viewPos.X - (float)mapElem.Bounds.renderX;
         viewPos.Y = viewPos.Y - (float)mapElem.Bounds.renderY;
 
