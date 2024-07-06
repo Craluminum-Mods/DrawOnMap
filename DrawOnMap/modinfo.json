@@ -5,7 +5,7 @@
   "name": "Draw On Map",
   "authors": [ "Craluminum2413" ],
   "description": "Allows to draw anywhere on map",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "dependencies": {
     "game": "1.19.0"
   }
