@@ -311,13 +311,13 @@ public class DrawOnMapLayer : MapLayer
         }
         catch (Exception) { }
 
-        guiDialogWorldMap.Composers[key].Enabled = false;
-        guiDialogWorldMap.Composers[key].GetSlider("sliderR").SetValues(currentValue: DrawingSystem.R, minValue: 0, maxValue: 255, step: 1);
-        guiDialogWorldMap.Composers[key].GetSlider("sliderG").SetValues(currentValue: DrawingSystem.G, minValue: 0, maxValue: 255, step: 1);
-        guiDialogWorldMap.Composers[key].GetSlider("sliderB").SetValues(currentValue: DrawingSystem.B, minValue: 0, maxValue: 255, step: 1);
-        guiDialogWorldMap.Composers[key].GetSlider("sliderA").SetValues(currentValue: DrawingSystem.A, minValue: 0, maxValue: 255, step: 1);
+        if (composer != null) composer.Enabled = false;
+        composer?.GetSlider("sliderR").SetValues(currentValue: DrawingSystem.R, minValue: 0, maxValue: 255, step: 1);
+        composer?.GetSlider("sliderG").SetValues(currentValue: DrawingSystem.G, minValue: 0, maxValue: 255, step: 1);
+        composer?.GetSlider("sliderB").SetValues(currentValue: DrawingSystem.B, minValue: 0, maxValue: 255, step: 1);
+        composer?.GetSlider("sliderA").SetValues(currentValue: DrawingSystem.A, minValue: 0, maxValue: 255, step: 1);
 
-        guiDialogWorldMap.Composers[key].IconListPickerSetValue("toolPicker", selectedTool);
+        composer?.IconListPickerSetValue("toolPicker", selectedTool);
     }
 
     private void OnPickTool(int toolId)
