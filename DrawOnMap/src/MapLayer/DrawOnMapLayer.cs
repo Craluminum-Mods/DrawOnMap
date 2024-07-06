@@ -29,7 +29,17 @@ public class DrawOnMapLayer : MapLayer
         capi.Event.MouseUp += Event_MouseUp;
         capi.Event.MouseMove += Event_MouseMove;
         capi.Event.MouseDown += Event_MouseDown;
+        capi.Event.KeyDown += Event_KeyDown;
+        capi.Event.KeyUp += Event_KeyUp;
         capi.Event.RegisterGameTickListener(Every100ms, 100);
+    }
+
+    private void Event_KeyDown(KeyEvent e)
+    {
+    }
+
+    private void Event_KeyUp(KeyEvent e)
+    {
     }
 
     private void Every100ms(float dt)
@@ -50,7 +60,6 @@ public class DrawOnMapLayer : MapLayer
 
     private void Event_MouseMove(MouseEvent args)
     {
-
     }
 
     private void Event_MouseUp(MouseEvent e)
