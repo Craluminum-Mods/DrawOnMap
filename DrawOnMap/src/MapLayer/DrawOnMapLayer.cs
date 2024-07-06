@@ -136,14 +136,27 @@ public class DrawOnMapLayer : MapLayer
             return;
         }
 
-        if (canDraw && selectedToolName == "paintbrush")
+        if (canDraw)
         {
-            Draw(args.X, args.Y, mapElem);
-        }
+            int steps = Math.Max(Math.Abs(args.DeltaX), Math.Abs(args.DeltaY));
+            float stepX = (float)args.DeltaX / steps;
+            float stepY = (float)args.DeltaY / steps;
 
-        if (canDraw && selectedToolName == "eraser")
-        {
-            Erase(args.X, args.Y, mapElem);
+            for (int i = 0; i <= steps; i++)
+            {
+                int x = (int)(args.X - args.DeltaX + i * stepX);
+                int y = (int)(args.Y - args.DeltaY + i * stepY);
+
+                if (selectedToolName == "paintbrush")
+                {
+                    Draw(x, y, mapElem);
+                }
+
+                if (selectedToolName == "eraser")
+                {
+                    Erase(x, y, mapElem);
+                }
+            }
         }
 
         foreach (DrawOnMapComponent loadedMapDatum in loadedMapData.Values)
@@ -165,7 +178,7 @@ public class DrawOnMapLayer : MapLayer
         }
     }
 
-    private void Draw(int x, int y, GuiElementMap mapElem)
+    private void Draw(int x, int y, GuiElementMap mapElem, int brushSize = 1)
     {
         Vec2f viewPos = new Vec2f(x, y);
         viewPos.X = viewPos.X - (float)mapElem.Bounds.renderX;
@@ -173,18 +186,29 @@ public class DrawOnMapLayer : MapLayer
 
         Vec3d worldPos = new Vec3d();
         mapElem.TranslateViewPosToWorldPos(viewPos, ref worldPos);
-        BlockPos blockPos = worldPos.AsBlockPos;
+        BlockPos initialBlockPos = worldPos.AsBlockPos;
 
-        if (loadedMapData.ContainsKey(blockPos))
-        {
-            loadedMapData[blockPos].Color = DrawingSystem.currentColorVec4f;
-            return;
-        }
         Vec4f color = DrawingSystem.currentColorVec4f;
-        loadedMapData[blockPos] = new DrawOnMapComponent(capi, blockPos, color);
+
+        for (int dx = -brushSize; dx <= brushSize; dx++)
+        {
+            for (int dy = -brushSize; dy <= brushSize; dy++)
+            {
+                BlockPos blockPos = initialBlockPos.Add(dx, 0, dy);
+
+                if (loadedMapData.ContainsKey(blockPos))
+                {
+                    loadedMapData[blockPos].Color = color;
+                }
+                else
+                {
+                    loadedMapData[blockPos] = new DrawOnMapComponent(capi, blockPos, color);
+                }
+            }
+        }
     }
 
-    private void Erase(int x, int y, GuiElementMap mapElem)
+    private void Erase(int x, int y, GuiElementMap mapElem, int brushSize = 1)
     {
         Vec2f viewPos = new Vec2f(x, y);
         viewPos.X = viewPos.X - (float)mapElem.Bounds.renderX;
@@ -192,11 +216,19 @@ public class DrawOnMapLayer : MapLayer
 
         Vec3d worldPos = new Vec3d();
         mapElem.TranslateViewPosToWorldPos(viewPos, ref worldPos);
-        BlockPos blockPos = worldPos.AsBlockPos;
+        BlockPos initialBlockPos = worldPos.AsBlockPos;
 
-        if (loadedMapData.ContainsKey(blockPos))
+        for (int dx = -brushSize; dx <= brushSize; dx++)
         {
-            loadedMapData.Remove(blockPos);
+            for (int dy = -brushSize; dy <= brushSize; dy++)
+            {
+                BlockPos blockPos = initialBlockPos.Add(dx, 0, dy);
+
+                if (loadedMapData.ContainsKey(blockPos))
+                {
+                    loadedMapData.Remove(blockPos);
+                }
+            }
         }
     }
 
