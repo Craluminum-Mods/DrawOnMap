@@ -159,8 +159,8 @@ public class DrawOnMapLayer : MapLayer
 
             for (int i = 0; i <= steps; i++)
             {
-                int x = (int)(args.X - args.DeltaX + i * stepX);
-                int y = (int)(args.Y - args.DeltaY + i * stepY);
+                int x = (int)(args.X - args.DeltaX + (i * stepX));
+                int y = (int)(args.Y - args.DeltaY + (i * stepY));
 
                 if (selectedToolName == "paintbrush")
                 {
