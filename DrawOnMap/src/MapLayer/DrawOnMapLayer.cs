@@ -15,8 +15,13 @@ public class DrawOnMapLayer : MapLayer
 {
     private Dictionary<BlockPos, DrawOnMapComponent> loadedMapData = new Dictionary<BlockPos, DrawOnMapComponent>();
     private ICoreClientAPI capi;
+
     private bool canDraw;
     private EnumMouseButton buttonForDrawing = EnumMouseButton.Middle;
+
+    private int selectedTool = 0;
+    private string selectedToolName => drawingTools[selectedTool];
+    private string[] drawingTools => new string[] { "paintbrush", "eraser" };
 
     private bool recompose;
     private GuiComposer composer;
@@ -126,9 +131,14 @@ public class DrawOnMapLayer : MapLayer
             return;
         }
 
-        if (canDraw)
+        if (canDraw && selectedToolName == "paintbrush")
         {
             Draw(args.X, args.Y, mapElem);
+        }
+
+        if (canDraw && selectedToolName == "eraser")
+        {
+            Erase(args.X, args.Y, mapElem);
         }
 
         foreach (DrawOnMapComponent loadedMapDatum in loadedMapData.Values)
@@ -169,6 +179,22 @@ public class DrawOnMapLayer : MapLayer
         loadedMapData[blockPos] = new DrawOnMapComponent(capi, blockPos, color);
     }
 
+    private void Erase(int x, int y, GuiElementMap mapElem)
+    {
+        Vec2f viewPos = new Vec2f(x, y);
+        viewPos.X = viewPos.X - (float)mapElem.Bounds.renderX;
+        viewPos.Y = viewPos.Y - (float)mapElem.Bounds.renderY;
+
+        Vec3d worldPos = new Vec3d();
+        mapElem.TranslateViewPosToWorldPos(viewPos, ref worldPos);
+        BlockPos blockPos = worldPos.AsBlockPos;
+
+        if (loadedMapData.ContainsKey(blockPos))
+        {
+            loadedMapData.Remove(blockPos);
+        }
+    }
+
     public override void ComposeDialogExtras(GuiDialogWorldMap guiDialogWorldMap, GuiComposer compo)
     {
         string key = "worldmap-layer-" + LayerGroupCode;
@@ -204,11 +230,13 @@ public class DrawOnMapLayer : MapLayer
 
         ElementBounds dropdownBounds = drawBounds.CopyOffsetedSibling(0, offsetY);
 
+        ElementBounds toolPickerBounds = dropdownIconBounds.CopyOffsetedSibling(0, offsetY).WithFixedWidth(dropdownIconBounds.fixedWidth);
+
         try
         {
             composer = guiDialogWorldMap.Composers[key] = capi.Gui.CreateCompo(key, dlgBounds)
                 .AddShadedDialogBG(bgBounds, withTitleBar: true)
-                .AddDialogTitleBar(Lang.Get("drawonmap:color-picker"), () => OnClose(guiDialogWorldMap, key), font: CairoFont.WhiteSmallText())
+                .AddDialogTitleBar(Lang.Get("drawonmap:drawing"), () => OnClose(guiDialogWorldMap, key), font: CairoFont.WhiteSmallText())
             .BeginChildElements(bgBounds)
                 .AddDynamicText("B:", CairoFont.WhiteMediumText().WithFontSize(28).WithOrientation(EnumTextOrientation.Left), sliderBTextBounds)
                 .AddDynamicText("G:", CairoFont.WhiteMediumText().WithFontSize(28).WithOrientation(EnumTextOrientation.Left), sliderGTextBounds)
@@ -224,6 +252,8 @@ public class DrawOnMapLayer : MapLayer
 
                 .AddStaticCustomDraw(dropdownIconBounds, OnDrawMouse)
                 .AddDropDown(values, names, (int)buttonForDrawing, OnSelectionChanged, dropdownBounds)
+
+                .AddToolListPicker(drawingTools, OnPickTool, toolPickerBounds, (int)toolPickerBounds.fixedWidth * 5, "toolPicker")
             .EndChildElements()
             .Compose();
         }
@@ -234,6 +264,13 @@ public class DrawOnMapLayer : MapLayer
         guiDialogWorldMap.Composers[key].GetSlider("sliderG").SetValues(currentValue: DrawingSystem.G, minValue: 0, maxValue: 255, step: 1);
         guiDialogWorldMap.Composers[key].GetSlider("sliderB").SetValues(currentValue: DrawingSystem.B, minValue: 0, maxValue: 255, step: 1);
         guiDialogWorldMap.Composers[key].GetSlider("sliderA").SetValues(currentValue: DrawingSystem.A, minValue: 0, maxValue: 255, step: 1);
+
+        guiDialogWorldMap.Composers[key].IconListPickerSetValue("toolPicker", selectedTool);
+    }
+
+    private void OnPickTool(int toolId)
+    {
+        selectedTool = toolId;
     }
 
     private void OnSelectionChanged(string code, bool selected)

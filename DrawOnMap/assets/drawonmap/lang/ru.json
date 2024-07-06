@@ -1,4 +1,5 @@
 {
     "maplayer-drawonmap:drawingsurface": "Рисование на карте",
-    "color-picker": "Выбор цвета"
+    "color-picker": "Выбор цвета",
+    "drawing": "Рисование"
 }
