@@ -21,7 +21,22 @@ public class DrawOnMapLayer : MapLayer
 
     private int selectedTool = 0;
     private string selectedToolName => drawingTools[selectedTool];
-    private string[] drawingTools => new string[] { "paintbrush", "eraser" };
+
+    private string[] drawingTools
+    {
+        get
+        {
+            string[] defaultToolsList = new string[] { "paintbrush", "eraser" };
+            string[] debugToolsList = new string[] { "wpX" };
+            if (Debug())
+            {
+                return debugToolsList.Concat(defaultToolsList).ToArray();
+            }
+            return defaultToolsList;
+        }
+    }
+
+    private bool Debug() => true;
 
     private bool recompose;
     private GuiComposer composer;
@@ -308,6 +323,10 @@ public class DrawOnMapLayer : MapLayer
     private void OnPickTool(int toolId)
     {
         selectedTool = toolId;
+        if (selectedToolName == "wpX")
+        {
+            loadedMapData.Clear();
+        }
     }
 
     private void OnSelectionChanged(string code, bool selected)
