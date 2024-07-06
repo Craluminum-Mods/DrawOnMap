@@ -102,9 +102,9 @@ public class DrawOnMapLayer : MapLayer
         }
         if (recompose)
         {
-        composer?.ReCompose();
+            composer?.ReCompose();
             recompose = false;
-    }
+        }
     }
 
     public override void Dispose()
@@ -238,8 +238,8 @@ public class DrawOnMapLayer : MapLayer
         try
         {
             composer = guiDialogWorldMap.Composers[key] = capi.Gui.CreateCompo(key, dlgBounds)
-                .AddShadedDialogBG(bgBounds, withTitleBar: true)
-                .AddDialogTitleBar(Lang.Get("drawonmap:drawing"), () => OnClose(guiDialogWorldMap, key), font: CairoFont.WhiteSmallText())
+                .AddShadedDialogBG(bgBounds, withTitleBar: false)
+                .AddDialogTitleBar(Lang.Get("drawonmap:drawing"), () => guiDialogWorldMap.Composers[key].Enabled = false, font: CairoFont.WhiteSmallText())
             .BeginChildElements(bgBounds)
                 .AddDynamicText("B:", CairoFont.WhiteMediumText().WithFontSize(28).WithOrientation(EnumTextOrientation.Left), sliderBTextBounds)
                 .AddDynamicText("G:", CairoFont.WhiteMediumText().WithFontSize(28).WithOrientation(EnumTextOrientation.Left), sliderGTextBounds)
@@ -262,7 +262,7 @@ public class DrawOnMapLayer : MapLayer
         }
         catch (Exception) { }
 
-        OnClose(guiDialogWorldMap, key);
+        guiDialogWorldMap.Composers[key].Enabled = false;
         guiDialogWorldMap.Composers[key].GetSlider("sliderR").SetValues(currentValue: DrawingSystem.R, minValue: 0, maxValue: 255, step: 1);
         guiDialogWorldMap.Composers[key].GetSlider("sliderG").SetValues(currentValue: DrawingSystem.G, minValue: 0, maxValue: 255, step: 1);
         guiDialogWorldMap.Composers[key].GetSlider("sliderB").SetValues(currentValue: DrawingSystem.B, minValue: 0, maxValue: 255, step: 1);
@@ -283,11 +283,6 @@ public class DrawOnMapLayer : MapLayer
         {
             buttonForDrawing = newButton;
         }
-    }
-
-    private static void OnClose(GuiDialogWorldMap guiDialogWorldMap, string key)
-    {
-        guiDialogWorldMap.Composers[key].Enabled = true;
     }
 
     private bool OnSlider(int newValue, EnumColorValue colorValue)
