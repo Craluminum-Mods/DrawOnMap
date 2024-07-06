@@ -71,6 +71,7 @@ public class DrawOnMapLayer : MapLayer
         }
         if (args.Button == buttonForDrawing)
         {
+            // universe itself collapses when handled
             //args.Handled = true;
             canDraw = true;
         }
@@ -92,6 +93,7 @@ public class DrawOnMapLayer : MapLayer
         }
         if (args.Button == buttonForDrawing)
         {
+            // universe itself collapses when handled
             //args.Handled = true;
             canDraw = false;
         }
