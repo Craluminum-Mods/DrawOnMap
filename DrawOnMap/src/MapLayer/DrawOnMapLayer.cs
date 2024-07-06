@@ -22,21 +22,19 @@ public class DrawOnMapLayer : MapLayer
     private int selectedTool = 0;
     private string selectedToolName => drawingTools[selectedTool];
 
+    private int brushSize = 1;
+
     private string[] drawingTools
     {
         get
         {
             string[] defaultToolsList = new string[] { "paintbrush", "eraser" };
             string[] debugToolsList = new string[] { "wpX" };
-            if (Debug())
-            {
-                return debugToolsList.Concat(defaultToolsList).ToArray();
-            }
-            return defaultToolsList;
+            return Debug() ? debugToolsList.Concat(defaultToolsList).ToArray() : defaultToolsList;
         }
     }
 
-    private bool Debug() => true;
+    private bool Debug() => false;
 
     private bool recompose;
     private GuiComposer composer;
@@ -164,12 +162,12 @@ public class DrawOnMapLayer : MapLayer
 
                 if (selectedToolName == "paintbrush")
                 {
-                    Draw(x, y, mapElem);
+                    Draw(x, y, mapElem, brushSize);
                 }
 
                 if (selectedToolName == "eraser")
                 {
-                    Erase(x, y, mapElem);
+                    Erase(x, y, mapElem, brushSize);
                 }
             }
         }
@@ -201,18 +199,24 @@ public class DrawOnMapLayer : MapLayer
 
         Vec3d worldPos = new Vec3d();
         mapElem.TranslateViewPosToWorldPos(viewPos, ref worldPos);
-        BlockPos blockPos = worldPos.AsBlockPos;
+        BlockPos blockPos = new BlockPos(worldPos.AsBlockPos.X, 0, worldPos.AsBlockPos.Z);
 
         Vec4f color = DrawingSystem.currentColorVec4f;
 
-        if (loadedMapData.ContainsKey(blockPos))
+        if (brushSize == 1)
         {
-            loadedMapData[blockPos].Color = color;
+            SetPixel(blockPos, color);
+            return;
         }
-        else
+
+        capi.World.BlockAccessor.WalkBlocks(
+            minPos: blockPos.AddCopy(0, 0, 0),
+            maxPos: blockPos.AddCopy(brushSize - 1, 0, brushSize - 1),
+            onBlock: (block, x, y, z) =>
         {
-            loadedMapData[blockPos] = new DrawOnMapComponent(capi, blockPos, color);
-        }
+            BlockPos newBlockPos = new BlockPos(x, y, z);
+            SetPixel(newBlockPos, color);
+        });
     }
 
     private void Erase(int x, int y, GuiElementMap mapElem, int brushSize = 1)
@@ -223,12 +227,38 @@ public class DrawOnMapLayer : MapLayer
 
         Vec3d worldPos = new Vec3d();
         mapElem.TranslateViewPosToWorldPos(viewPos, ref worldPos);
-        BlockPos blockPos = worldPos.AsBlockPos;
+        BlockPos blockPos = new BlockPos(worldPos.AsBlockPos.X, 0, worldPos.AsBlockPos.Z);
 
-        if (loadedMapData.ContainsKey(blockPos))
+        if (brushSize == 1)
         {
-            loadedMapData.Remove(blockPos);
+            RemovePixel(blockPos);
+            return;
         }
+
+        capi.World.BlockAccessor.WalkBlocks(
+            minPos: blockPos.AddCopy(0, 0, 0),
+            maxPos: blockPos.AddCopy(brushSize - 1, 0, brushSize - 1),
+            onBlock: (block, x, y, z) =>
+        {
+            RemovePixel(new BlockPos(x, y, z));
+        });
+    }
+
+    private void SetPixel(BlockPos blockPos, Vec4f color)
+    {
+        if (loadedMapData.TryGetValue(blockPos, out DrawOnMapComponent value))
+        {
+            value.Color = color;
+        }
+        else
+        {
+            loadedMapData[blockPos] = new DrawOnMapComponent(capi, blockPos, color);
+        }
+    }
+
+    private void RemovePixel(BlockPos blockPos)
+    {
+        loadedMapData.Remove(blockPos);
     }
 
     public override void ComposeDialogExtras(GuiDialogWorldMap guiDialogWorldMap, GuiComposer compo)
@@ -255,16 +285,18 @@ public class DrawOnMapLayer : MapLayer
         ElementBounds sliderBTextBounds = sliderGTextBounds.CopyOffsetedSibling(0, offsetY);
         ElementBounds sliderATextBounds = sliderBTextBounds.CopyOffsetedSibling(0, offsetY);
 
-        ElementBounds dropdownIconBounds = sliderATextBounds.CopyOffsetedSibling(0, offsetY * 2);
-
-        ElementBounds sliderB = sliderRTextBounds.FlatCopy().WithFixedOffset(offsetY, 0).WithFixedSize(120, sliderRTextBounds.fixedHeight);
+        ElementBounds sliderB = sliderRTextBounds.CopyOffsetedSibling(offsetY, fixedDeltaWidth: indent * 3);
         ElementBounds sliderG = sliderB.CopyOffsetedSibling(0, offsetY);
         ElementBounds sliderR = sliderG.CopyOffsetedSibling(0, offsetY);
         ElementBounds sliderA = sliderR.CopyOffsetedSibling(0, offsetY);
 
-        ElementBounds drawBounds = sliderA.CopyOffsetedSibling(0, offsetY);
+        ElementBounds drawBounds = sliderATextBounds.CopyOffsetedSibling(0, offsetY, fixedDeltaWidth: sliderA.fixedWidth + gap);
 
-        ElementBounds dropdownBounds = drawBounds.CopyOffsetedSibling(0, offsetY);
+        ElementBounds brushSizeIconBounds = sliderATextBounds.CopyOffsetedSibling(0, offsetY * 2).WithFixedWidth(indent * 2);
+        ElementBounds sliderBrushSizeBounds = brushSizeIconBounds.CopyOffsetedSibling(brushSizeIconBounds.fixedWidth).WithFixedSize((indent * 3) + gap, indent);
+
+        ElementBounds dropdownIconBounds = sliderATextBounds.CopyOffsetedSibling(0, offsetY * 3);
+        ElementBounds dropdownBounds = dropdownIconBounds.CopyOffsetedSibling(offsetY).WithFixedWidth(sliderB.fixedWidth);
 
         ElementBounds toolPickerBounds = dropdownIconBounds.CopyOffsetedSibling(0, offsetY).WithFixedWidth(dropdownIconBounds.fixedWidth);
 
@@ -283,6 +315,9 @@ public class DrawOnMapLayer : MapLayer
                 .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.R), sliderR, "sliderR")
                 .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.A), sliderA, "sliderA")
 
+                .AddDynamicText(brushSize.ToString(), CairoFont.WhiteMediumText().WithFontSize(28), brushSizeIconBounds, key: "textBrushSize")
+                .AddSlider(OnSliderBrushSize, sliderBrushSizeBounds, "sliderBrushSize")
+
                 .AddDynamicCustomDraw(drawBounds, OnDrawColor)
                 .AddInset(drawBounds)
 
@@ -300,16 +335,18 @@ public class DrawOnMapLayer : MapLayer
         composer?.GetSlider("sliderG").SetValues(currentValue: DrawingSystem.G, minValue: 0, maxValue: 255, step: 1);
         composer?.GetSlider("sliderB").SetValues(currentValue: DrawingSystem.B, minValue: 0, maxValue: 255, step: 1);
         composer?.GetSlider("sliderA").SetValues(currentValue: DrawingSystem.A, minValue: 0, maxValue: 255, step: 1);
-
+        composer?.GetSlider("sliderBrushSize").SetValues(currentValue: brushSize, minValue: 1, maxValue: 72, step: 1);
         composer?.IconListPickerSetValue("toolPicker", selectedTool);
     }
 
     private void OnPickTool(int toolId)
     {
         selectedTool = toolId;
-        if (selectedToolName == "wpX")
+        switch (selectedToolName)
         {
-            loadedMapData.Clear();
+            case "wpX":
+                loadedMapData.Clear();
+                break;
         }
     }
 
@@ -326,6 +363,13 @@ public class DrawOnMapLayer : MapLayer
     {
         DrawingSystem.SetColor((byte)newValue, colorValue);
         recompose = true;
+        return true;
+    }
+
+    private bool OnSliderBrushSize(int newValue)
+    {
+        brushSize = newValue;
+        composer?.GetDynamicText("textBrushSize").SetNewText(text: brushSize.ToString(), forceRedraw: true);
         return true;
     }
 
