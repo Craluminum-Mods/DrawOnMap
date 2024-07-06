@@ -53,16 +53,6 @@ public class DrawOnMapLayer : MapLayer
         }
     }
 
-    private void Every100ms(float dt)
-    {
-        if (!Active)
-        {
-            return;
-        }
-
-        composer?.ReCompose();
-    }
-
     private void Event_MouseDown(MouseEvent args)
     {
         if (!Active)
@@ -97,6 +87,16 @@ public class DrawOnMapLayer : MapLayer
             //args.Handled = true;
             canDraw = false;
         }
+    }
+
+    private void Every100ms(float dt)
+    {
+        if (!Active)
+        {
+            return;
+        }
+
+        composer?.ReCompose();
     }
 
     public override void Dispose()
