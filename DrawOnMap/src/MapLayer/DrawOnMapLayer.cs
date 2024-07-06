@@ -315,7 +315,7 @@ public class DrawOnMapLayer : MapLayer
                 .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.R), sliderR, "sliderR")
                 .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.A), sliderA, "sliderA")
 
-                .AddDynamicText(brushSize.ToString(), CairoFont.WhiteMediumText().WithFontSize(28), brushSizeIconBounds, key: "textBrushSize")
+                .AddDynamicText("", CairoFont.WhiteMediumText().WithFontSize(28), brushSizeIconBounds, key: "textBrushSize")
                 .AddSlider(OnSliderBrushSize, sliderBrushSizeBounds, "sliderBrushSize")
 
                 .AddDynamicCustomDraw(drawBounds, OnDrawColor)
@@ -336,6 +336,7 @@ public class DrawOnMapLayer : MapLayer
         composer?.GetSlider("sliderB").SetValues(currentValue: DrawingSystem.B, minValue: 0, maxValue: 255, step: 1);
         composer?.GetSlider("sliderA").SetValues(currentValue: DrawingSystem.A, minValue: 0, maxValue: 255, step: 1);
         composer?.GetSlider("sliderBrushSize").SetValues(currentValue: brushSize, minValue: 1, maxValue: 72, step: 1);
+        composer?.GetDynamicText("textBrushSize").SetNewText(text: brushSize.ToString());
         composer?.IconListPickerSetValue("toolPicker", selectedTool);
     }
 
