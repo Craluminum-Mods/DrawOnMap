@@ -181,38 +181,53 @@ public class DrawOnMapLayer : MapLayer
         string[] names = Enum.GetNames(typeof(EnumMouseButton));
         string[] values = Enum.GetValues<EnumMouseButton>().Select(x => x.ToString()).ToArray();
 
+        double indent = 30;
+        double gap = 10;
+        double offsetY = indent + gap;
+
         ElementBounds bgBounds = ElementBounds.Fill.WithFixedPadding(GuiStyle.ElementToDialogPadding);
         bgBounds.BothSizing = ElementSizing.FitToChildren;
 
-        ElementBounds sliderB = ElementBounds.Fixed(0.0, 30.0, 120.0, 35.0);
-        ElementBounds sliderG = sliderB.CopyOffsetedSibling(0, 40);
-        ElementBounds sliderR = sliderG.CopyOffsetedSibling(0, 40);
-        ElementBounds sliderA = sliderR.CopyOffsetedSibling(0, 40);
+        ElementBounds sliderRTextBounds = ElementBounds.Fixed(0, indent, indent, indent);
+        ElementBounds sliderGTextBounds = sliderRTextBounds.CopyOffsetedSibling(0, offsetY);
+        ElementBounds sliderBTextBounds = sliderGTextBounds.CopyOffsetedSibling(0, offsetY);
+        ElementBounds sliderATextBounds = sliderBTextBounds.CopyOffsetedSibling(0, offsetY);
 
-        ElementBounds drawBounds = sliderA.CopyOffsetedSibling(0, 40).WithFixedHeight(sliderB.fixedWidth);
+        ElementBounds dropdownIconBounds = sliderATextBounds.CopyOffsetedSibling(0, offsetY * 2);
 
-        ElementBounds dropdownBounds = drawBounds.CopyOffsetedSibling(0, drawBounds.fixedHeight + 20).WithFixedSize(sliderA.fixedWidth, sliderA.fixedHeight);
+        ElementBounds sliderB = sliderRTextBounds.FlatCopy().WithFixedOffset(offsetY, 0).WithFixedSize(120, sliderRTextBounds.fixedHeight);
+        ElementBounds sliderG = sliderB.CopyOffsetedSibling(0, offsetY);
+        ElementBounds sliderR = sliderG.CopyOffsetedSibling(0, offsetY);
+        ElementBounds sliderA = sliderR.CopyOffsetedSibling(0, offsetY);
+
+        ElementBounds drawBounds = sliderA.CopyOffsetedSibling(0, offsetY);
+
+        ElementBounds dropdownBounds = drawBounds.CopyOffsetedSibling(0, offsetY);
 
         try
         {
+            composer = guiDialogWorldMap.Composers[key] = capi.Gui.CreateCompo(key, dlgBounds)
+                .AddShadedDialogBG(bgBounds, withTitleBar: true)
+                .AddDialogTitleBar(Lang.Get("drawonmap:color-picker"), () => OnClose(guiDialogWorldMap, key), font: CairoFont.WhiteSmallText())
+            .BeginChildElements(bgBounds)
+                .AddDynamicText("B:", CairoFont.WhiteMediumText().WithFontSize(28).WithOrientation(EnumTextOrientation.Left), sliderBTextBounds)
+                .AddDynamicText("G:", CairoFont.WhiteMediumText().WithFontSize(28).WithOrientation(EnumTextOrientation.Left), sliderGTextBounds)
+                .AddDynamicText("R:", CairoFont.WhiteMediumText().WithFontSize(28).WithOrientation(EnumTextOrientation.Left), sliderRTextBounds)
+                .AddDynamicText("A:", CairoFont.WhiteMediumText().WithFontSize(28).WithOrientation(EnumTextOrientation.Left), sliderATextBounds)
+                .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.B), sliderB, "sliderB")
+                .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.G), sliderG, "sliderG")
+                .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.R), sliderR, "sliderR")
+                .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.A), sliderA, "sliderA")
 
-        composer = guiDialogWorldMap.Composers[key] = capi.Gui.CreateCompo(key, dlgBounds)
-            .AddShadedDialogBG(bgBounds, withTitleBar: true)
-            .AddDialogTitleBar(Lang.Get("drawonmap:color-picker"), () => OnClose(guiDialogWorldMap, key), font: CairoFont.WhiteSmallText())
-        .BeginChildElements(bgBounds)
-            .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.R), sliderR, "sliderR")
-            .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.G), sliderG, "sliderG")
-            .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.B), sliderB, "sliderB")
-            .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.A), sliderA, "sliderA")
-            .AddDynamicCustomDraw(drawBounds, OnDrawColor)
-            .AddDropDown(values, names, (int)buttonForDrawing, OnSelectionChanged, dropdownBounds)
-        .EndChildElements()
-        .Compose();
-        }
-        catch(Exception)
-        {
+                .AddDynamicCustomDraw(drawBounds, OnDrawColor)
+                .AddInset(drawBounds)
 
+                .AddStaticCustomDraw(dropdownIconBounds, OnDrawMouse)
+                .AddDropDown(values, names, (int)buttonForDrawing, OnSelectionChanged, dropdownBounds)
+            .EndChildElements()
+            .Compose();
         }
+        catch (Exception) { }
 
         OnClose(guiDialogWorldMap, key);
         guiDialogWorldMap.Composers[key].GetSlider("sliderR").SetValues(currentValue: DrawingSystem.R, minValue: 0, maxValue: 255, step: 1);
@@ -246,5 +261,10 @@ public class DrawOnMapLayer : MapLayer
     {
         ctx.SetSourceRGBA(DrawingSystem.currentColorDoubles);
         ctx.Paint();
+    }
+
+    private void OnDrawMouse(Context ctx, ImageSurface surface, ElementBounds currentBounds)
+    {
+        new IconUtil(capi).DrawLeftMouseButton(ctx, (int)currentBounds.drawX, (int)currentBounds.drawY, (float)currentBounds.fixedWidth, (float)currentBounds.fixedHeight, ColorUtil.WhiteArgbDouble);
     }
 }
