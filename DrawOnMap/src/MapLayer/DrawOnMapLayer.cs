@@ -201,25 +201,17 @@ public class DrawOnMapLayer : MapLayer
 
         Vec3d worldPos = new Vec3d();
         mapElem.TranslateViewPosToWorldPos(viewPos, ref worldPos);
-        BlockPos initialBlockPos = worldPos.AsBlockPos;
+        BlockPos blockPos = worldPos.AsBlockPos;
 
         Vec4f color = DrawingSystem.currentColorVec4f;
 
-        for (int dx = -brushSize; dx <= brushSize; dx++)
+        if (loadedMapData.ContainsKey(blockPos))
         {
-            for (int dy = -brushSize; dy <= brushSize; dy++)
-            {
-                BlockPos blockPos = initialBlockPos.Add(dx, 0, dy);
-
-                if (loadedMapData.ContainsKey(blockPos))
-                {
-                    loadedMapData[blockPos].Color = color;
-                }
-                else
-                {
-                    loadedMapData[blockPos] = new DrawOnMapComponent(capi, blockPos, color);
-                }
-            }
+            loadedMapData[blockPos].Color = color;
+        }
+        else
+        {
+            loadedMapData[blockPos] = new DrawOnMapComponent(capi, blockPos, color);
         }
     }
 
@@ -231,19 +223,11 @@ public class DrawOnMapLayer : MapLayer
 
         Vec3d worldPos = new Vec3d();
         mapElem.TranslateViewPosToWorldPos(viewPos, ref worldPos);
-        BlockPos initialBlockPos = worldPos.AsBlockPos;
+        BlockPos blockPos = worldPos.AsBlockPos;
 
-        for (int dx = -brushSize; dx <= brushSize; dx++)
+        if (loadedMapData.ContainsKey(blockPos))
         {
-            for (int dy = -brushSize; dy <= brushSize; dy++)
-            {
-                BlockPos blockPos = initialBlockPos.Add(dx, 0, dy);
-
-                if (loadedMapData.ContainsKey(blockPos))
-                {
-                    loadedMapData.Remove(blockPos);
-                }
-            }
+            loadedMapData.Remove(blockPos);
         }
     }
 
