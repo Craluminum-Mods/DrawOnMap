@@ -102,13 +102,15 @@ public class DrawOnMapLayer : MapLayer
         }
         if (recompose)
         {
-            composer?.ReCompose();
             recompose = false;
+            composer?.ReCompose();
         }
     }
 
     public override void Dispose()
     {
+        composer?.Dispose();
+
         foreach (DrawOnMapComponent value in loadedMapData.Values)
         {
             value?.Dispose();
