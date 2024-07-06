@@ -100,8 +100,11 @@ public class DrawOnMapLayer : MapLayer
         {
             return;
         }
-
+        if (recompose)
+        {
         composer?.ReCompose();
+            recompose = false;
+    }
     }
 
     public override void Dispose()
