@@ -1,5 +1,7 @@
 ﻿using Cairo;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -14,6 +16,7 @@ public class DrawOnMapLayer : MapLayer
     private Dictionary<BlockPos, DrawOnMapComponent> loadedMapData = new Dictionary<BlockPos, DrawOnMapComponent>();
     private ICoreClientAPI capi;
     private bool canDraw;
+    private EnumMouseButton buttonForDrawing = EnumMouseButton.Middle;
 
     private bool recompose;
     private GuiComposer composer;
@@ -34,38 +37,62 @@ public class DrawOnMapLayer : MapLayer
         capi.Event.RegisterGameTickListener(Every100ms, 100);
     }
 
-    private void Event_KeyDown(KeyEvent e)
+    private void Event_KeyDown(KeyEvent args)
     {
+        if (!Active)
+        {
+            return;
+        }
     }
 
-    private void Event_KeyUp(KeyEvent e)
+    private void Event_KeyUp(KeyEvent args)
     {
+        if (!Active)
+        {
+            return;
+        }
     }
 
     private void Every100ms(float dt)
     {
-        if (composer != null)
+        if (!Active)
         {
-            composer.ReCompose();
+            return;
         }
+
+        composer?.ReCompose();
     }
 
     private void Event_MouseDown(MouseEvent args)
     {
-        if (args.Button == EnumMouseButton.Middle)
+        if (!Active)
         {
+            return;
+        }
+        if (args.Button == buttonForDrawing)
+        {
+            //args.Handled = true;
             canDraw = true;
         }
     }
 
     private void Event_MouseMove(MouseEvent args)
     {
+        if (!Active)
+        {
+            return;
+        }
     }
 
-    private void Event_MouseUp(MouseEvent e)
+    private void Event_MouseUp(MouseEvent args)
     {
-        if (e.Button == EnumMouseButton.Middle)
+        if (!Active)
         {
+            return;
+        }
+        if (args.Button == buttonForDrawing)
+        {
+            //args.Handled = true;
             canDraw = false;
         }
     }
@@ -142,12 +169,15 @@ public class DrawOnMapLayer : MapLayer
 
     public override void ComposeDialogExtras(GuiDialogWorldMap guiDialogWorldMap, GuiComposer compo)
     {
-        string key = "worldmap-layer-" + LayerGroupCode; 
+        string key = "worldmap-layer-" + LayerGroupCode;
         ElementBounds dlgBounds = ElementStdBounds.AutosizedMainDialog.WithFixedPosition(
             x: ((compo.Bounds.renderX + compo.Bounds.OuterWidth) / RuntimeEnv.GUIScale) + 30.0,
             y: compo.Bounds.renderY / (double)RuntimeEnv.GUIScale)
             .WithFixedOffset(0, 200)
             .WithAlignment(EnumDialogArea.None);
+
+        string[] names = Enum.GetNames(typeof(EnumMouseButton));
+        string[] values = Enum.GetValues<EnumMouseButton>().Select(x => x.ToString()).ToArray();
 
         ElementBounds bgBounds = ElementBounds.Fill.WithFixedPadding(GuiStyle.ElementToDialogPadding);
         bgBounds.BothSizing = ElementSizing.FitToChildren;
@@ -156,7 +186,14 @@ public class DrawOnMapLayer : MapLayer
         ElementBounds sliderG = sliderB.CopyOffsetedSibling(0, 40);
         ElementBounds sliderR = sliderG.CopyOffsetedSibling(0, 40);
         ElementBounds sliderA = sliderR.CopyOffsetedSibling(0, 40);
+
         ElementBounds drawBounds = sliderA.CopyOffsetedSibling(0, 40).WithFixedHeight(sliderB.fixedWidth);
+
+        ElementBounds dropdownBounds = drawBounds.CopyOffsetedSibling(0, drawBounds.fixedHeight + 20).WithFixedSize(sliderA.fixedWidth, sliderA.fixedHeight);
+
+        try
+        {
+
         composer = guiDialogWorldMap.Composers[key] = capi.Gui.CreateCompo(key, dlgBounds)
             .AddShadedDialogBG(bgBounds, withTitleBar: true)
             .AddDialogTitleBar(Lang.Get("drawonmap:color-picker"), () => OnClose(guiDialogWorldMap, key), font: CairoFont.WhiteSmallText())
@@ -166,14 +203,29 @@ public class DrawOnMapLayer : MapLayer
             .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.B), sliderB, "sliderB")
             .AddSlider((newVal) => OnSlider(newVal, EnumColorValue.A), sliderA, "sliderA")
             .AddDynamicCustomDraw(drawBounds, OnDrawColor)
+            .AddDropDown(values, names, (int)buttonForDrawing, OnSelectionChanged, dropdownBounds)
         .EndChildElements()
         .Compose();
+        }
+        catch(Exception)
+        {
+
+        }
 
         OnClose(guiDialogWorldMap, key);
         guiDialogWorldMap.Composers[key].GetSlider("sliderR").SetValues(currentValue: DrawingSystem.R, minValue: 0, maxValue: 255, step: 1);
         guiDialogWorldMap.Composers[key].GetSlider("sliderG").SetValues(currentValue: DrawingSystem.G, minValue: 0, maxValue: 255, step: 1);
         guiDialogWorldMap.Composers[key].GetSlider("sliderB").SetValues(currentValue: DrawingSystem.B, minValue: 0, maxValue: 255, step: 1);
         guiDialogWorldMap.Composers[key].GetSlider("sliderA").SetValues(currentValue: DrawingSystem.A, minValue: 0, maxValue: 255, step: 1);
+    }
+
+    private void OnSelectionChanged(string code, bool selected)
+    {
+        EnumMouseButton newButton = buttonForDrawing;
+        if (Enum.TryParse(code, out newButton))
+        {
+            buttonForDrawing = newButton;
+        }
     }
 
     private static void OnClose(GuiDialogWorldMap guiDialogWorldMap, string key)
