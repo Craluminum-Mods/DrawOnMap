@@ -13,7 +13,7 @@ public class DrawOnMapLayer : MapLayer
 {
     private Dictionary<BlockPos, DrawOnMapComponent> loadedMapData = new Dictionary<BlockPos, DrawOnMapComponent>();
     private ICoreClientAPI capi;
-    private bool leftDraw;
+    private bool canDraw;
 
     private bool recompose;
     private GuiComposer composer;
@@ -54,7 +54,7 @@ public class DrawOnMapLayer : MapLayer
     {
         if (args.Button == EnumMouseButton.Middle)
         {
-            leftDraw = true;
+            canDraw = true;
         }
     }
 
@@ -66,7 +66,7 @@ public class DrawOnMapLayer : MapLayer
     {
         if (e.Button == EnumMouseButton.Middle)
         {
-            leftDraw = false;
+            canDraw = false;
         }
     }
 
@@ -97,7 +97,7 @@ public class DrawOnMapLayer : MapLayer
             return;
         }
 
-        if (leftDraw)
+        if (canDraw)
         {
             Draw(args.X, args.Y, mapElem);
         }
